@@ -5,21 +5,7 @@ import './CartItem.css';
 
 function CartItem({ onContinueShopping }) {
     const dispatch = useDispatch();
-    const cartItems = useSelector((state) => state.cart.items);
-
-    // Calculate total amount for all items
-    const calculateTotalAmount = () => {
-        return cartItems.reduce((total, item) => {
-            const price = parseFloat(item.cost.replace('$', ''));
-            return total + (price * item.quantity);
-        }, 0);
-    };
-
-    // Calculate subtotal for a single item
-    const calculateTotalCost = (item) => {
-        const price = parseFloat(item.cost.replace('$', ''));
-        return (price * item.quantity).toFixed(2);
-    };
+    const { items, totalItems, totalAmount } = useSelector((state) => state.cart);
 
     // Handle increment quantity
     const handleIncrement = (item) => {
@@ -61,7 +47,7 @@ function CartItem({ onContinueShopping }) {
         <div className="cart-container">
             <h2>Your Shopping Cart</h2>
             
-            {cartItems.length === 0 ? (
+            {items.length === 0 ? (
                 <div className="empty-cart">
                     <p>Your cart is empty</p>
                     <button onClick={handleContinueShopping}>Continue Shopping</button>
@@ -69,7 +55,7 @@ function CartItem({ onContinueShopping }) {
             ) : (
                 <>
                     <div className="cart-items">
-                        {cartItems.map((item) => (
+                        {items.map((item) => (
                             <div key={item.name} className="cart-item">
                                 <img src={item.image} alt={item.name} className="cart-item-image" />
                                 <div className="cart-item-details">
@@ -91,7 +77,7 @@ function CartItem({ onContinueShopping }) {
                                             +
                                         </button>
                                     </div>
-                                    <p className="subtotal">Subtotal: ${calculateTotalCost(item)}</p>
+                                    <p className="subtotal">Subtotal: ${item.subtotal.toFixed(2)}</p>
                                 </div>
                                 <button 
                                     onClick={() => handleRemove(item.name)}
@@ -105,8 +91,8 @@ function CartItem({ onContinueShopping }) {
 
                     <div className="cart-summary">
                         <h3>Cart Summary</h3>
-                        <p>Total Items: {cartItems.reduce((total, item) => total + item.quantity, 0)}</p>
-                        <p className="total-amount">Total Amount: ${calculateTotalAmount().toFixed(2)}</p>
+                        <p>Total Items: {totalItems}</p>
+                        <p className="total-amount">Total Amount: ${totalAmount.toFixed(2)}</p>
                         <div className="cart-buttons">
                             <button onClick={handleContinueShopping} className="continue-shopping-btn">
                                 Continue Shopping
