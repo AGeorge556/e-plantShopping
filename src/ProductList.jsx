@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { addItem } from './CartSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { addItem, updateQuantity, removeItem } from './CartSlice';
 import './ProductList.css'
 import CartItem from './CartItem';
 
@@ -9,6 +9,7 @@ function ProductList({ onHomeClick }) {
     const [showPlants, setShowPlants] = useState(false); // State to control the visibility of the About Us page
     const [addedToCart, setAddedToCart] = useState({});
     const dispatch = useDispatch();
+    const { items } = useSelector((state) => state.cart);
 
     const plantsArray = [
         {
@@ -223,14 +224,18 @@ function ProductList({ onHomeClick }) {
         padding: '15px',
         display: 'flex',
         justifyContent: 'space-between',
-        alignIems: 'center',
+        alignItems: 'center',
         fontSize: '20px',
+        flexWrap: 'wrap'
     }
     const styleObjUl = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        width: '1100px',
+        width: 'auto',
+        maxWidth: '1100px',
+        gap: '20px',
+        flexWrap: 'wrap'
     }
     const styleA = {
         color: 'white',
@@ -238,12 +243,51 @@ function ProductList({ onHomeClick }) {
         textDecoration: 'none',
     }
 
+    // Find item in cart
+    const findCartItem = (name) => {
+        return items.find(item => item.name === name);
+    };
+
+    // Get item quantity from cart
+    const getItemQuantity = (name) => {
+        const item = findCartItem(name);
+        return item ? item.quantity : 0;
+    };
+
     const handleAddToCart = (plant) => {
         dispatch(addItem(plant));
         setAddedToCart(prev => ({
             ...prev,
             [plant.name]: true
         }));
+    };
+
+    const handleIncrementQuantity = (plant) => {
+        const item = findCartItem(plant.name);
+        if (item) {
+            dispatch(updateQuantity({
+                name: plant.name,
+                quantity: item.quantity + 1
+            }));
+        } else {
+            handleAddToCart(plant);
+        }
+    };
+
+    const handleDecrementQuantity = (plant) => {
+        const item = findCartItem(plant.name);
+        if (item && item.quantity > 1) {
+            dispatch(updateQuantity({
+                name: plant.name,
+                quantity: item.quantity - 1
+            }));
+        } else if (item && item.quantity === 1) {
+            dispatch(removeItem(plant.name));
+            setAddedToCart(prev => ({
+                ...prev,
+                [plant.name]: false
+            }));
+        }
     };
 
     const handleHomeClick = (e) => {
@@ -267,8 +311,13 @@ function ProductList({ onHomeClick }) {
         setShowCart(false);
     };
 
+    // Get total items in cart
+    const getTotalItems = () => {
+        return items.reduce((total, item) => total + item.quantity, 0);
+    };
+
     return (
-        <div>
+        <div className="product-list-wrapper">
             <div className="navbar" style={styleObj}>
                 <div className="tag">
                     <div className="luxury">
@@ -280,35 +329,83 @@ function ProductList({ onHomeClick }) {
                             </div>
                         </a>
                     </div>
-
                 </div>
                 <div style={styleObjUl}>
                     <div> <a href="#" onClick={(e) => handlePlantsClick(e)} style={styleA}>Plants</a></div>
-                    <div> <a href="#" onClick={(e) => handleCartClick(e)} style={styleA}><h1 className='cart'><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" id="IconChangeColor" height="68" width="68"><rect width="156" height="156" fill="none"></rect><circle cx="80" cy="216" r="12"></circle><circle cx="184" cy="216" r="12"></circle><path d="M42.3,72H221.7l-26.4,92.4A15.9,15.9,0,0,1,179.9,176H84.1a15.9,15.9,0,0,1-15.4-11.6L32.5,37.8A8,8,0,0,0,24.8,32H8" fill="none" stroke="#faf9f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" id="mainIconPathAttribute"></path></svg></h1></a></div>
+                    <div> <a href="#" onClick={(e) => handleCartClick(e)} style={styleA}>
+                        <h1 className='cart'>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" id="IconChangeColor" height="48" width="48">
+                                <rect width="156" height="156" fill="none"></rect>
+                                <circle cx="80" cy="216" r="12"></circle>
+                                <circle cx="184" cy="216" r="12"></circle>
+                                <path d="M42.3,72H221.7l-26.4,92.4A15.9,15.9,0,0,1,179.9,176H84.1a15.9,15.9,0,0,1-15.4-11.6L32.5,37.8A8,8,0,0,0,24.8,32H8" fill="none" stroke="#faf9f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" id="mainIconPathAttribute"></path>
+                            </svg>
+                            {getTotalItems() > 0 && <span className="cart-badge">{getTotalItems()}</span>}
+                        </h1>
+                    </a></div>
                 </div>
             </div>
-            {!showCart ? (
-                <div className="product-grid">
-                    {plantsArray.map((category) => (
-                        category.plants.map((plant) => (
-                            <div key={plant.name} className="product-card">
-                                <img src={plant.image} alt={plant.name} className="product-image" />
-                                <h3 className="product-name">{plant.name}</h3>
-                                <p className="product-description">{plant.description}</p>
-                                <p className="product-cost">{plant.cost}</p>
-                                <button 
-                                    className={`add-to-cart-btn ${addedToCart[plant.name] ? 'added' : ''}`}
-                                    onClick={() => handleAddToCart(plant)}
-                                >
-                                    {addedToCart[plant.name] ? 'Added to Cart' : 'Add to Cart'}
-                                </button>
-                            </div>
-                        ))
-                    ))}
-                </div>
-            ) : (
-                <CartItem onContinueShopping={handleContinueShopping} />
-            )}
+            
+            {/* Fixed cart button for mobile */}
+            <div className="mobile-cart-button">
+                <button onClick={(e) => handleCartClick(e)}>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" height="24" width="24">
+                        <rect width="156" height="156" fill="none"></rect>
+                        <circle cx="80" cy="216" r="12"></circle>
+                        <circle cx="184" cy="216" r="12"></circle>
+                        <path d="M42.3,72H221.7l-26.4,92.4A15.9,15.9,0,0,1,179.9,176H84.1a15.9,15.9,0,0,1-15.4-11.6L32.5,37.8A8,8,0,0,0,24.8,32H8" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    {getTotalItems() > 0 && <span className="mobile-cart-badge">{getTotalItems()}</span>}
+                </button>
+            </div>
+            
+            <div className="content-container">
+                {!showCart ? (
+                    <div className="product-grid">
+                        {plantsArray.map((category) => (
+                            category.plants.map((plant) => (
+                                <div key={plant.name} className="product-card">
+                                    <img src={plant.image} alt={plant.name} className="product-image" />
+                                    <h3 className="product-name">{plant.name}</h3>
+                                    <p className="product-description">{plant.description}</p>
+                                    <p className="product-cost">{plant.cost}</p>
+                                    
+                                    {getItemQuantity(plant.name) > 0 ? (
+                                        <div className="product-quantity-controls">
+                                            <button 
+                                                className="product-quantity-btn" 
+                                                onClick={() => handleDecrementQuantity(plant)}
+                                            >
+                                                -
+                                            </button>
+                                            <span className="product-quantity">
+                                                {getItemQuantity(plant.name)}
+                                            </span>
+                                            <button 
+                                                className="product-quantity-btn" 
+                                                onClick={() => handleIncrementQuantity(plant)}
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button 
+                                            className="add-to-cart-btn"
+                                            onClick={() => handleAddToCart(plant)}
+                                        >
+                                            Add to Cart
+                                        </button>
+                                    )}
+                                </div>
+                            ))
+                        ))}
+                    </div>
+                ) : (
+                    <div className="cart-view">
+                        <CartItem onContinueShopping={handleContinueShopping} />
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
